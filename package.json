@@ -1,7 +1,7 @@
 {
   "name": "react-touchpad",
-  "version": "1.0.0",
-  "description": "A react HOC for adding some phisics to pointer events",
+  "version": "0.0.1",
+  "description": "A react HOC for adding some physics to pointer events",
   "author": "Sergei Droganov",
   "license": "MIT",
   "repository": "Sergei Droganov/react-touchpad",
