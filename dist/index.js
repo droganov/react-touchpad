@@ -52,7 +52,7 @@ var performanceNow = createCommonjsModule(function (module) {
 
 }).call(commonjsGlobal);
 
-//# sourceMappingURL=performance-now.js.map
+
 });
 
 var root = typeof window === 'undefined' ? commonjsGlobal : window
@@ -1946,7 +1946,7 @@ var ReactTouchpad = function (_Component) {
       if (!_this.isMoving) return;
       _this.isMoving = false;
       _this.fixState();
-      _this.createImpetus();
+      _this.createMotionTween();
     }, _this.makeFitBounds = function (duration) {
       return function () {
         var _this2 = _this,
@@ -1975,8 +1975,8 @@ var ReactTouchpad = function (_Component) {
       window.addEventListener('mouseup', this.stopMove);
     }
   }, {
-    key: 'createImpetus',
-    value: function createImpetus() {
+    key: 'createMotionTween',
+    value: function createMotionTween() {
       var points = [].concat(toConsumableArray(this.trackingPoints));
       if (points.length < 2) return;
       points.splice(1, points.length - 2);
@@ -2048,7 +2048,6 @@ var ReactTouchpad = function (_Component) {
       var Element = this.props.element;
       var childProps = this.childProps;
 
-      console.log('omit', omit$1(this.props));
       return React__default.createElement(
         Element,
         {

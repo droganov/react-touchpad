@@ -9,4 +9,4 @@ This is a basic component meant to help making scroll views, sliders, maps and o
 
 ## License
 
-MIT © [Sergei Droganov](https://github.com/Sergei Droganov)
+MIT © [Sergei Droganov](https://github.com/droganov)
