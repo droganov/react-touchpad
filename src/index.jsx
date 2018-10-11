@@ -202,6 +202,7 @@ export default class ReactTouchpad extends Component {
     const { childProps } = this;
     return (
       <Element
+        {...omit(this.props)}
         onDragStart={prevent}
         onContextMenu={prevent}
         onMouseDown={this.beginMove}
@@ -210,13 +211,6 @@ export default class ReactTouchpad extends Component {
         onTouchEnd={this.stopMove}
         onTouchCancel={this.stopMove}
         ref={this.node}
-        style={{
-          background: 'rgb(220, 220, 220)',
-          height: 500,
-          outline: '1px dotted #999',
-          overflow: 'hidden',
-          userSelect: 'none',
-        }}
       >
         {Children.map(
           this.props.children,

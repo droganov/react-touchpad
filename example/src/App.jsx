@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 
-import Impetus from 'react-impetus'
+import Touchpad from 'react-touchpad';
 
 const Child = ({ x, y }) =>
   <div
@@ -130,9 +130,19 @@ export default class App extends Component {
         margin: 10,
         position: 'relative',
       }}>
-        <Impetus bounds={bounds} onUpdate1={console.log}>
+        <Touchpad
+          bounds={bounds}
+          onUpdate1={console.log}
+          style={{
+            background: '#cc1',
+            border: '1px solid #cc2',
+            height: 500,
+            userSelect: 'none',
+            overflow: 'hidden',
+          }}
+        >
           <Child />
-        </Impetus>
+        </Touchpad>
       </div>
     )
   }

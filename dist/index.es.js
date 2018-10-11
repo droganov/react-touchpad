@@ -2045,7 +2045,7 @@ var ReactTouchpad = function (_Component) {
 
       return React.createElement(
         Element,
-        {
+        _extends({}, omit$1(this.props), {
           onDragStart: prevent,
           onContextMenu: prevent,
           onMouseDown: this.beginMove,
@@ -2053,15 +2053,8 @@ var ReactTouchpad = function (_Component) {
           onTouchMove: this.handleMove,
           onTouchEnd: this.stopMove,
           onTouchCancel: this.stopMove,
-          ref: this.node,
-          style: {
-            background: 'rgb(220, 220, 220)',
-            height: 500,
-            outline: '1px dotted #999',
-            overflow: 'hidden',
-            userSelect: 'none'
-          }
-        },
+          ref: this.node
+        }),
         Children.map(this.props.children, function (Child) {
           return cloneElement(Child, childProps);
         })

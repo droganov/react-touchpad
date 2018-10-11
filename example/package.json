@@ -1,6 +1,6 @@
 {
-  "name": "react-impetus-example",
-  "homepage": "https://Sergei Droganov.github.io/react-impetus",
+  "name": "react-touchpad-example",
+  "homepage": "droganov.github.io/react-touchpad",
   "version": "0.0.0",
   "license": "MIT",
   "private": true,
@@ -8,7 +8,7 @@
     "prop-types": "^15.6.2",
     "react": "^16.4.1",
     "react-dom": "^16.4.1",
-    "react-impetus": "link:..",
+    "react-touchpad": "link:..",
     "react-scripts": "^1.1.4"
   },
   "scripts": {
