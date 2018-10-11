@@ -1,6 +1,6 @@
 {
   "name": "react-touchpad-example",
-  "homepage": "droganov.github.io/react-touchpad",
+  "homepage": "https://droganov.github.io/react-touchpad",
   "version": "0.0.0",
   "license": "MIT",
   "private": true,
@@ -8,17 +8,20 @@
     "prop-types": "^15.6.2",
     "react": "^16.4.1",
     "react-dom": "^16.4.1",
-    "react-touchpad": "link:..",
-    "react-scripts": "^1.1.4"
+    "react-scripts": "^1.1.4",
+    "react-touchpad": "link:.."
   },
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test --env=jsdom",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "predeploy": "npm run build",
+    "deploy": "gh-pages -d build"
   },
   "devDependencies": {
     "eslint-config-airbnb": "^17.1.0",
-    "eslint-plugin-jsx-a11y": "^6.1.1"
+    "eslint-plugin-jsx-a11y": "^6.1.1",
+    "gh-pages": "^2.0.1"
   }
 }
