@@ -10,6 +10,7 @@ import makeNumberInterpolator from 'raf-tween/lib/makeNumberInterpolator';
 import makeOmitter from 'react-omit-own-props';
 
 import applyBounds from './applyBounds';
+import calcOffset from './calcOffset';
 import defaultTimingFunc from './defaultTimingFunc';
 import define from './define';
 import getDistance from './getDistance';
@@ -43,6 +44,8 @@ const PROP_TYPES = {
   ease: PropTypes.func,
   element: PropTypes.string,
   friction: PropTypes.number,
+  holdDelay: PropTypes.number,
+  onHold: PropTypes.func,
   onUpdate: PropTypes.func,
   elasticity: PropTypes.number,
   windage: PropTypes.number,
@@ -55,8 +58,10 @@ const DEFAULT_PROPS = {
   disabled: false,
   ease: defaultTimingFunc,
   element: 'div',
-  friction: 0.003,
-  onUpdate: () => null,
+  friction: 0.006,
+  holdDelay: 604,
+  onHold() {},
+  onUpdate() {},
   elasticity: 0.6,
   windage: 0.064,
 };
@@ -66,11 +71,13 @@ const omit = makeOmitter(PROP_TYPES);
 export default class ReactTouchpad extends Component {
   static propTypes = PROP_TYPES;
   static defaultProps = DEFAULT_PROPS;
+
   state = {
     ...DEFAULT_STATE,
     lastX: this.props.defaultX,
     lastY: this.props.defaultY,
   };
+  emitHold = this.props.onHold;
   emitUpdate = this.props.onUpdate;
   tween = makeTween({
     interpolator: (a, b) => i => ({
@@ -86,11 +93,20 @@ export default class ReactTouchpad extends Component {
 
   componentDidMount() {
     window.addEventListener('mousemove', this.handleMove);
-    window.addEventListener('mouseup', this.stopMove);
+    window.addEventListener('mouseup', this.handleEnd);
+  }
+  componentDidUpdate(prevProps, prevState) {
+    const { x: xp, y: yp } = calcOffset(prevState);
+    const { x, y } = calcOffset(this.state);
+    if (x === xp && y === yp) return;
+    this.emitUpdate(this.childProps);
   }
   componentWillUnmount() {
     window.removeEventListener('mousemove', this.handleMove);
-    window.addEventListener('mouseup', this.stopMove);
+    window.addEventListener('mouseup', this.handleEnd);
+    this.unHold();
+    this.unfitBounds();
+    this.unTween();
   }
 
   get isDisabled() { return this.props.disabled; }
@@ -113,24 +129,17 @@ export default class ReactTouchpad extends Component {
     return interpolateOffset(offset, bounds, elasticity);
   }
   get offset() {
-    const { firstX, firstY, lastX, lastY, currentX, currentY } = this.state;
-    return {
-      x: lastX + (currentX - firstX),
-      y: lastY + (currentY - firstY),
-    };
+    return calcOffset(this.state);
   }
 
-  beginMove = (event) => {
+  handleStart = (event) => {
     if (this.isDisabled) return;
     const modifiedEvent = modify(event);
     this.unTween();
     this.isMoving = true;
     this.trackingPoints = [];
     this.updateState(modifiedEvent);
-  }
-  fixState = () => {
-    const { x: lastX, y: lastY } = this.offset;
-    this.setState({ ...DEFAULT_STATE, lastX, lastY });
+    this.promptHold();
   }
   handleMove = (event) => {
     if (!this.isMoving) return;
@@ -138,6 +147,7 @@ export default class ReactTouchpad extends Component {
     event.preventDefault();
     this.updateState(modifiedEvent);
     this.track(modifiedEvent.x, modifiedEvent.y);
+    this.unHold();
   }
   hendleWheel = (event) => {
     if (this.isDisabled) return;
@@ -145,12 +155,14 @@ export default class ReactTouchpad extends Component {
     const { deltaX: x, deltaY: y } = event;
     this.patchState({ x, y });
     this.propmptFitBounds(600);
+    this.unHold();
   }
-  stopMove = () => {
+  handleEnd = () => {
     if (!this.isMoving) return;
     this.isMoving = false;
     this.fixState();
     this.createTween();
+    this.unHold();
   }
 
   makeFitBounds = duration => () => {
@@ -160,10 +172,18 @@ export default class ReactTouchpad extends Component {
     this.tweenTo(offset, nextOffset, { duration: duration ** elasticity, ease });
   }
   propmptFitBounds(duration) {
-    clearTimeout(this.fitBoundstimeout);
+    this.unfitBounds();
     this.fitBoundstimeout = setTimeout(this.makeFitBounds(duration), 100);
   }
+  unfitBounds() { clearTimeout(this.fitBoundstimeout); }
 
+  promptHold() { this.holdTimeout = setTimeout(this.emitHold, this.props.holdDelay); }
+  unHold() { clearTimeout(this.holdTimeout); }
+
+  fixState() {
+    const { x: lastX, y: lastY } = this.offset;
+    this.setState({ ...DEFAULT_STATE, lastX, lastY });
+  }
   patchState({ x, y }) {
     this.setState(({ lastX, lastY }) => ({
       lastX: lastX - x,
@@ -171,12 +191,10 @@ export default class ReactTouchpad extends Component {
     }));
   }
   replaceState({ x, y }) {
-    if (this.isDisabled) return;
     this.setState({
       lastX: x,
       lastY: y,
     });
-    this.emitUpdate(x, y);
   }
   updateState({ x, y }) {
     if (this.isDisabled) return;
@@ -186,7 +204,6 @@ export default class ReactTouchpad extends Component {
       currentX: x,
       currentY: y,
     }));
-    this.emitUpdate(x, y);
   }
 
   createTween() {
@@ -206,13 +223,11 @@ export default class ReactTouchpad extends Component {
 
     this.tweenTo(offset, nextOffset, { duration, onComplete: this.makeFitBounds(duration) });
   }
-  unTween() {
-    if (this.cancelTransition) this.cancelTransition();
-  }
   tweenTo(offset, nextOffset, options) {
     this.unTween();
     this.cancelTransition = this.tween(offset, nextOffset, options);
   }
+  unTween() { if (this.cancelTransition) this.cancelTransition(); }
 
   track(x, y) {
     const ts = Date.now();
@@ -229,12 +244,12 @@ export default class ReactTouchpad extends Component {
         {...omit(this.props)}
         onDragStart={prevent}
         onContextMenu={prevent}
-        onMouseDown={this.beginMove}
+        onMouseDown={this.handleStart}
         onWheel={this.hendleWheel}
-        onTouchStart={this.beginMove}
+        onTouchStart={this.handleStart}
         onTouchMove={this.handleMove}
-        onTouchEnd={this.stopMove}
-        onTouchCancel={this.stopMove}
+        onTouchEnd={this.handleEnd}
+        onTouchCancel={this.handleEnd}
         ref={this.node}
       >
         {Children.map(

@@ -1653,6 +1653,19 @@ var applyBounds = (function (_ref, _ref2) {
   };
 });
 
+var calcOffset = (function (_ref) {
+  var firstX = _ref.firstX,
+      firstY = _ref.firstY,
+      lastX = _ref.lastX,
+      lastY = _ref.lastY,
+      currentX = _ref.currentX,
+      currentY = _ref.currentY;
+  return {
+    x: lastX + (currentX - firstX),
+    y: lastY + (currentY - firstY)
+  };
+});
+
 var circ = function circ(timeFraction) {
   return 1 - Math.sin(Math.acos(timeFraction));
 };
@@ -1869,6 +1882,8 @@ var PROP_TYPES = {
   ease: PropTypes.func,
   element: PropTypes.string,
   friction: PropTypes.number,
+  holdDelay: PropTypes.number,
+  onHold: PropTypes.func,
   onUpdate: PropTypes.func,
   elasticity: PropTypes.number,
   windage: PropTypes.number
@@ -1881,10 +1896,11 @@ var DEFAULT_PROPS = {
   disabled: false,
   ease: defaultTimingFunc,
   element: 'div',
-  friction: 0.003,
-  onUpdate: function onUpdate() {
-    return null;
-  },
+  friction: 0.006,
+  holdDelay: 604,
+  onHold: function onHold() {},
+  onUpdate: function onUpdate() {},
+
   elasticity: 0.6,
   windage: 0.064
 };
@@ -1908,7 +1924,7 @@ var ReactTouchpad = function (_Component) {
     return _ret = (_temp = (_this = possibleConstructorReturn(this, (_ref = ReactTouchpad.__proto__ || Object.getPrototypeOf(ReactTouchpad)).call.apply(_ref, [this].concat(args))), _this), _this.state = _extends({}, DEFAULT_STATE, {
       lastX: _this.props.defaultX,
       lastY: _this.props.defaultY
-    }), _this.emitUpdate = _this.props.onUpdate, _this.tween = makeTween({
+    }), _this.emitHold = _this.props.onHold, _this.emitUpdate = _this.props.onUpdate, _this.tween = makeTween({
       interpolator: function interpolator(a, b) {
         return function (i) {
           return {
@@ -1919,25 +1935,21 @@ var ReactTouchpad = function (_Component) {
       },
       ease: _this.props.ease,
       onUpdate: _this.replaceState.bind(_this)
-    }), _this.isMoving = false, _this.node = createRef(), _this.trackingPoints = [], _this.beginMove = function (event) {
+    }), _this.isMoving = false, _this.node = createRef(), _this.trackingPoints = [], _this.handleStart = function (event) {
       if (_this.isDisabled) return;
       var modifiedEvent = modify(event);
       _this.unTween();
       _this.isMoving = true;
       _this.trackingPoints = [];
       _this.updateState(modifiedEvent);
-    }, _this.fixState = function () {
-      var _this$offset = _this.offset,
-          lastX = _this$offset.x,
-          lastY = _this$offset.y;
-
-      _this.setState(_extends({}, DEFAULT_STATE, { lastX: lastX, lastY: lastY }));
+      _this.promptHold();
     }, _this.handleMove = function (event) {
       if (!_this.isMoving) return;
       var modifiedEvent = modify(event);
       event.preventDefault();
       _this.updateState(modifiedEvent);
       _this.track(modifiedEvent.x, modifiedEvent.y);
+      _this.unHold();
     }, _this.hendleWheel = function (event) {
       if (_this.isDisabled) return;
       event.preventDefault();
@@ -1946,11 +1958,13 @@ var ReactTouchpad = function (_Component) {
 
       _this.patchState({ x: x, y: y });
       _this.propmptFitBounds(600);
-    }, _this.stopMove = function () {
+      _this.unHold();
+    }, _this.handleEnd = function () {
       if (!_this.isMoving) return;
       _this.isMoving = false;
       _this.fixState();
       _this.createTween();
+      _this.unHold();
     }, _this.makeFitBounds = function (duration) {
       return function () {
         var _this2 = _this,
@@ -1970,19 +1984,60 @@ var ReactTouchpad = function (_Component) {
     key: 'componentDidMount',
     value: function componentDidMount() {
       window.addEventListener('mousemove', this.handleMove);
-      window.addEventListener('mouseup', this.stopMove);
+      window.addEventListener('mouseup', this.handleEnd);
+    }
+  }, {
+    key: 'componentDidUpdate',
+    value: function componentDidUpdate(prevProps, prevState) {
+      var _calcOffset = calcOffset(prevState),
+          xp = _calcOffset.x,
+          yp = _calcOffset.y;
+
+      var _calcOffset2 = calcOffset(this.state),
+          x = _calcOffset2.x,
+          y = _calcOffset2.y;
+
+      if (x === xp && y === yp) return;
+      this.emitUpdate(this.childProps);
     }
   }, {
     key: 'componentWillUnmount',
     value: function componentWillUnmount() {
       window.removeEventListener('mousemove', this.handleMove);
-      window.addEventListener('mouseup', this.stopMove);
+      window.addEventListener('mouseup', this.handleEnd);
+      this.unHold();
+      this.unfitBounds();
+      this.unTween();
     }
   }, {
     key: 'propmptFitBounds',
     value: function propmptFitBounds(duration) {
-      clearTimeout(this.fitBoundstimeout);
+      this.unfitBounds();
       this.fitBoundstimeout = setTimeout(this.makeFitBounds(duration), 100);
+    }
+  }, {
+    key: 'unfitBounds',
+    value: function unfitBounds() {
+      clearTimeout(this.fitBoundstimeout);
+    }
+  }, {
+    key: 'promptHold',
+    value: function promptHold() {
+      this.holdTimeout = setTimeout(this.emitHold, this.props.holdDelay);
+    }
+  }, {
+    key: 'unHold',
+    value: function unHold() {
+      clearTimeout(this.holdTimeout);
+    }
+  }, {
+    key: 'fixState',
+    value: function fixState() {
+      var _offset = this.offset,
+          lastX = _offset.x,
+          lastY = _offset.y;
+
+      this.setState(_extends({}, DEFAULT_STATE, { lastX: lastX, lastY: lastY }));
     }
   }, {
     key: 'patchState',
@@ -2005,12 +2060,10 @@ var ReactTouchpad = function (_Component) {
       var x = _ref4.x,
           y = _ref4.y;
 
-      if (this.isDisabled) return;
       this.setState({
         lastX: x,
         lastY: y
       });
-      this.emitUpdate(x, y);
     }
   }, {
     key: 'updateState',
@@ -2029,7 +2082,6 @@ var ReactTouchpad = function (_Component) {
           currentY: y
         };
       });
-      this.emitUpdate(x, y);
     }
   }, {
     key: 'createTween',
@@ -2053,15 +2105,15 @@ var ReactTouchpad = function (_Component) {
       this.tweenTo(offset, nextOffset, { duration: duration, onComplete: this.makeFitBounds(duration) });
     }
   }, {
-    key: 'unTween',
-    value: function unTween() {
-      if (this.cancelTransition) this.cancelTransition();
-    }
-  }, {
     key: 'tweenTo',
     value: function tweenTo(offset, nextOffset, options) {
       this.unTween();
       this.cancelTransition = this.tween(offset, nextOffset, options);
+    }
+  }, {
+    key: 'unTween',
+    value: function unTween() {
+      if (this.cancelTransition) this.cancelTransition();
     }
   }, {
     key: 'track',
@@ -2084,12 +2136,12 @@ var ReactTouchpad = function (_Component) {
         _extends({}, omit$1(this.props), {
           onDragStart: prevent,
           onContextMenu: prevent,
-          onMouseDown: this.beginMove,
+          onMouseDown: this.handleStart,
           onWheel: this.hendleWheel,
-          onTouchStart: this.beginMove,
+          onTouchStart: this.handleStart,
           onTouchMove: this.handleMove,
-          onTouchEnd: this.stopMove,
-          onTouchCancel: this.stopMove,
+          onTouchEnd: this.handleEnd,
+          onTouchCancel: this.handleEnd,
           ref: this.node
         }),
         Children.map(this.props.children, function (Child) {
@@ -2113,9 +2165,9 @@ var ReactTouchpad = function (_Component) {
           bottom = _ref7.bottom,
           right = _ref7.right;
 
-      var _offset = this.offset,
-          x = _offset.x,
-          y = _offset.y;
+      var _offset2 = this.offset,
+          x = _offset2.x,
+          y = _offset2.y;
 
       return {
         top: define(top, y),
@@ -2136,18 +2188,7 @@ var ReactTouchpad = function (_Component) {
   }, {
     key: 'offset',
     get: function get$$1() {
-      var _state = this.state,
-          firstX = _state.firstX,
-          firstY = _state.firstY,
-          lastX = _state.lastX,
-          lastY = _state.lastY,
-          currentX = _state.currentX,
-          currentY = _state.currentY;
-
-      return {
-        x: lastX + (currentX - firstX),
-        y: lastY + (currentY - firstY)
-      };
+      return calcOffset(this.state);
     }
   }]);
   return ReactTouchpad;
