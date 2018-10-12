@@ -47,7 +47,7 @@ var performanceNow = createCommonjsModule(function (module) {
 
 }).call(commonjsGlobal);
 
-
+//# sourceMappingURL=performance-now.js.map
 });
 
 var root = typeof window === 'undefined' ? commonjsGlobal : window
@@ -1886,7 +1886,7 @@ var DEFAULT_PROPS = {
     return null;
   },
   elasticity: 0.6,
-  windage: 0.026
+  windage: 0.064
 };
 
 var omit$1 = makeOmitter(PROP_TYPES);
@@ -1920,8 +1920,9 @@ var ReactTouchpad = function (_Component) {
       ease: _this.props.ease,
       onUpdate: _this.replaceState.bind(_this)
     }), _this.isMoving = false, _this.node = createRef(), _this.trackingPoints = [], _this.beginMove = function (event) {
+      if (_this.isDisabled) return;
       var modifiedEvent = modify(event);
-      if (_this.cancelTransition) _this.cancelTransition();
+      _this.unTween();
       _this.isMoving = true;
       _this.trackingPoints = [];
       _this.updateState(modifiedEvent);
@@ -1932,16 +1933,24 @@ var ReactTouchpad = function (_Component) {
 
       _this.setState(_extends({}, DEFAULT_STATE, { lastX: lastX, lastY: lastY }));
     }, _this.handleMove = function (event) {
-      var modifiedEvent = modify(event);
       if (!_this.isMoving) return;
+      var modifiedEvent = modify(event);
       event.preventDefault();
       _this.updateState(modifiedEvent);
       _this.track(modifiedEvent.x, modifiedEvent.y);
+    }, _this.hendleWheel = function (event) {
+      if (_this.isDisabled) return;
+      event.preventDefault();
+      var x = event.deltaX,
+          y = event.deltaY;
+
+      _this.patchState({ x: x, y: y });
+      _this.propmptFitBounds(600);
     }, _this.stopMove = function () {
       if (!_this.isMoving) return;
       _this.isMoving = false;
       _this.fixState();
-      _this.createMotionTween();
+      _this.createTween();
     }, _this.makeFitBounds = function (duration) {
       return function () {
         var _this2 = _this,
@@ -1970,8 +1979,61 @@ var ReactTouchpad = function (_Component) {
       window.addEventListener('mouseup', this.stopMove);
     }
   }, {
-    key: 'createMotionTween',
-    value: function createMotionTween() {
+    key: 'propmptFitBounds',
+    value: function propmptFitBounds(duration) {
+      clearTimeout(this.fitBoundstimeout);
+      this.fitBoundstimeout = setTimeout(this.makeFitBounds(duration), 100);
+    }
+  }, {
+    key: 'patchState',
+    value: function patchState(_ref2) {
+      var x = _ref2.x,
+          y = _ref2.y;
+
+      this.setState(function (_ref3) {
+        var lastX = _ref3.lastX,
+            lastY = _ref3.lastY;
+        return {
+          lastX: lastX - x,
+          lastY: lastY - y
+        };
+      });
+    }
+  }, {
+    key: 'replaceState',
+    value: function replaceState(_ref4) {
+      var x = _ref4.x,
+          y = _ref4.y;
+
+      if (this.isDisabled) return;
+      this.setState({
+        lastX: x,
+        lastY: y
+      });
+      this.emitUpdate(x, y);
+    }
+  }, {
+    key: 'updateState',
+    value: function updateState(_ref5) {
+      var x = _ref5.x,
+          y = _ref5.y;
+
+      if (this.isDisabled) return;
+      this.setState(function (_ref6) {
+        var firstX = _ref6.firstX,
+            firstY = _ref6.firstY;
+        return {
+          firstX: define(firstX, x, DEFAULT_STATE.firstX),
+          firstY: define(firstY, y, DEFAULT_STATE.firstY),
+          currentX: x,
+          currentY: y
+        };
+      });
+      this.emitUpdate(x, y);
+    }
+  }, {
+    key: 'createTween',
+    value: function createTween() {
       var points = [].concat(toConsumableArray(this.trackingPoints));
       if (points.length < 2) return;
       points.splice(1, points.length - 2);
@@ -1991,40 +2053,14 @@ var ReactTouchpad = function (_Component) {
       this.tweenTo(offset, nextOffset, { duration: duration, onComplete: this.makeFitBounds(duration) });
     }
   }, {
-    key: 'replaceState',
-    value: function replaceState(_ref2) {
-      var x = _ref2.x,
-          y = _ref2.y;
-
-      if (this.isDisabled) return;
-      this.setState({
-        lastX: x,
-        lastY: y
-      });
-      this.emitUpdate(x, y);
-    }
-  }, {
-    key: 'updateState',
-    value: function updateState(_ref3) {
-      var x = _ref3.x,
-          y = _ref3.y;
-
-      if (this.isDisabled) return;
-      this.setState(function (_ref4) {
-        var firstX = _ref4.firstX,
-            firstY = _ref4.firstY;
-        return {
-          firstX: define(firstX, x, DEFAULT_STATE.firstX),
-          firstY: define(firstY, y, DEFAULT_STATE.firstY),
-          currentX: x,
-          currentY: y
-        };
-      });
-      this.emitUpdate(x, y);
+    key: 'unTween',
+    value: function unTween() {
+      if (this.cancelTransition) this.cancelTransition();
     }
   }, {
     key: 'tweenTo',
     value: function tweenTo(offset, nextOffset, options) {
+      this.unTween();
       this.cancelTransition = this.tween(offset, nextOffset, options);
     }
   }, {
@@ -2049,6 +2085,7 @@ var ReactTouchpad = function (_Component) {
           onDragStart: prevent,
           onContextMenu: prevent,
           onMouseDown: this.beginMove,
+          onWheel: this.hendleWheel,
           onTouchStart: this.beginMove,
           onTouchMove: this.handleMove,
           onTouchEnd: this.stopMove,
@@ -2070,11 +2107,11 @@ var ReactTouchpad = function (_Component) {
     get: function get$$1() {
       var bounds = this.props.bounds;
 
-      var _ref5 = typeof bounds === 'function' && this.node.current ? bounds(this.node.current) : bounds,
-          top = _ref5.top,
-          left = _ref5.left,
-          bottom = _ref5.bottom,
-          right = _ref5.right;
+      var _ref7 = typeof bounds === 'function' && this.node.current ? bounds(this.node.current) : bounds,
+          top = _ref7.top,
+          left = _ref7.left,
+          bottom = _ref7.bottom,
+          right = _ref7.right;
 
       var _offset = this.offset,
           x = _offset.x,

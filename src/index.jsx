@@ -58,7 +58,7 @@ const DEFAULT_PROPS = {
   friction: 0.003,
   onUpdate: () => null,
   elasticity: 0.6,
-  windage: 0.026,
+  windage: 0.064,
 };
 
 const omit = makeOmitter(PROP_TYPES);
@@ -121,8 +121,9 @@ export default class ReactTouchpad extends Component {
   }
 
   beginMove = (event) => {
+    if (this.isDisabled) return;
     const modifiedEvent = modify(event);
-    if (this.cancelTransition) this.cancelTransition();
+    this.unTween();
     this.isMoving = true;
     this.trackingPoints = [];
     this.updateState(modifiedEvent);
@@ -132,41 +133,42 @@ export default class ReactTouchpad extends Component {
     this.setState({ ...DEFAULT_STATE, lastX, lastY });
   }
   handleMove = (event) => {
-    const modifiedEvent = modify(event);
     if (!this.isMoving) return;
+    const modifiedEvent = modify(event);
     event.preventDefault();
     this.updateState(modifiedEvent);
     this.track(modifiedEvent.x, modifiedEvent.y);
+  }
+  hendleWheel = (event) => {
+    if (this.isDisabled) return;
+    event.preventDefault();
+    const { deltaX: x, deltaY: y } = event;
+    this.patchState({ x, y });
+    this.propmptFitBounds(600);
   }
   stopMove = () => {
     if (!this.isMoving) return;
     this.isMoving = false;
     this.fixState();
-    this.createMotionTween();
+    this.createTween();
   }
+
   makeFitBounds = duration => () => {
     const { bounds, offset } = this;
     const { ease, elasticity } = this.props;
     const nextOffset = applyBounds(offset, bounds);
     this.tweenTo(offset, nextOffset, { duration: duration ** elasticity, ease });
   }
+  propmptFitBounds(duration) {
+    clearTimeout(this.fitBoundstimeout);
+    this.fitBoundstimeout = setTimeout(this.makeFitBounds(duration), 100);
+  }
 
-  createMotionTween() {
-    const points = [...this.trackingPoints];
-    if (points.length < 2) return;
-    points.splice(1, points.length - 2);
-
-    const { friction, windage } = this.props;
-
-    const { offset } = this;
-    const distance = getDistance(points);
-    const time = getTime(points);
-    const impulse = time * windage;
-    const duration = impulse / friction;
-
-    const nextOffset = getNextOffset(offset, distance, impulse);
-
-    this.tweenTo(offset, nextOffset, { duration, onComplete: this.makeFitBounds(duration) });
+  patchState({ x, y }) {
+    this.setState(({ lastX, lastY }) => ({
+      lastX: lastX - x,
+      lastY: lastY - y,
+    }));
   }
   replaceState({ x, y }) {
     if (this.isDisabled) return;
@@ -186,7 +188,29 @@ export default class ReactTouchpad extends Component {
     }));
     this.emitUpdate(x, y);
   }
+
+  createTween() {
+    const points = [...this.trackingPoints];
+    if (points.length < 2) return;
+    points.splice(1, points.length - 2);
+
+    const { friction, windage } = this.props;
+
+    const { offset } = this;
+    const distance = getDistance(points);
+    const time = getTime(points);
+    const impulse = time * windage;
+    const duration = impulse / friction;
+
+    const nextOffset = getNextOffset(offset, distance, impulse);
+
+    this.tweenTo(offset, nextOffset, { duration, onComplete: this.makeFitBounds(duration) });
+  }
+  unTween() {
+    if (this.cancelTransition) this.cancelTransition();
+  }
   tweenTo(offset, nextOffset, options) {
+    this.unTween();
     this.cancelTransition = this.tween(offset, nextOffset, options);
   }
 
@@ -206,6 +230,7 @@ export default class ReactTouchpad extends Component {
         onDragStart={prevent}
         onContextMenu={prevent}
         onMouseDown={this.beginMove}
+        onWheel={this.hendleWheel}
         onTouchStart={this.beginMove}
         onTouchMove={this.handleMove}
         onTouchEnd={this.stopMove}
