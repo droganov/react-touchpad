@@ -26,7 +26,7 @@ export default class App extends Component {
     const { View } = this.state;
     return (
       <div style={{ margin: 10 }}>
-        <h3>Exmaples</h3>
+        <h3>Examples</h3>
         <hr />
         <nav>
           <this.Button View={Sortable} name="Scroll + Sort" />
