@@ -1888,7 +1888,9 @@ var PROP_TYPES = {
   element: PropTypes.string,
   friction: PropTypes.number,
   holdDelay: PropTypes.number,
+  onComplete: PropTypes.func,
   onHold: PropTypes.func,
+  onStop: PropTypes.func,
   onUpdate: PropTypes.func,
   elasticity: PropTypes.number,
   windage: PropTypes.number
@@ -1903,7 +1905,9 @@ var DEFAULT_PROPS = {
   element: 'div',
   friction: 0.006,
   holdDelay: 604,
+  onComplete: function onComplete() {},
   onHold: function onHold() {},
+  onStop: function onStop() {},
   onUpdate: function onUpdate() {},
 
   elasticity: 0.6,
@@ -1915,21 +1919,80 @@ var omit$1 = makeOmitter(PROP_TYPES);
 var ReactTouchpad = function (_Component) {
   inherits(ReactTouchpad, _Component);
 
-  function ReactTouchpad() {
-    var _ref;
-
-    var _temp, _this, _ret;
-
+  function ReactTouchpad(props, context) {
     classCallCheck(this, ReactTouchpad);
 
-    for (var _len = arguments.length, args = Array(_len), _key = 0; _key < _len; _key++) {
-      args[_key] = arguments[_key];
-    }
+    var _this = possibleConstructorReturn(this, (ReactTouchpad.__proto__ || Object.getPrototypeOf(ReactTouchpad)).call(this, props, context));
 
-    return _ret = (_temp = (_this = possibleConstructorReturn(this, (_ref = ReactTouchpad.__proto__ || Object.getPrototypeOf(ReactTouchpad)).call.apply(_ref, [this].concat(args))), _this), _this.state = _extends({}, DEFAULT_STATE, {
+    _this.emitStop = _this.props.onStop;
+
+    _this.emitComplete = function () {
+      return _this.props.onComplete(_this.replaceState);
+    };
+
+    _this.emitHold = function (modifiedEvent) {
+      if (!_this.isMoving) return;
+      _this.props.onHold(modifiedEvent);
+    };
+
+    _this.handleStart = function (event) {
+      if (_this.isDisabled) return;
+      var modifiedEvent = modify(event);
+      event.stopPropagation();
+      _this.unTween();
+      _this.isMoving = true;
+      _this.trackingPoints = [];
+      _this.updateState(modifiedEvent);
+      _this.promptHold(modifiedEvent);
+    };
+
+    _this.handleMove = function (event) {
+      if (!_this.isMoving) return;
+      var modifiedEvent = modify(event);
+      _this.updateState(modifiedEvent);
+      _this.track(modifiedEvent.x, modifiedEvent.y);
+      _this.unHold();
+    };
+
+    _this.handleWheel = function (event) {
+      if (_this.isDisabled) return;
+      event.preventDefault();
+      var x = event.deltaX,
+          y = event.deltaY;
+
+      _this.patchState({ x: x, y: y });
+      _this.propmptFitBounds(600);
+      _this.unHold();
+    };
+
+    _this.handleEnd = function () {
+      if (!_this.isMoving) return;
+      _this.isMoving = false;
+      _this.fixState();
+      _this.createTween();
+      _this.emitStop();
+    };
+
+    _this.makeFitBounds = function (prevDuration) {
+      return function () {
+        var bounds = _this.bounds,
+            offset = _this.offset;
+        var _this$props = _this.props,
+            ease = _this$props.ease,
+            elasticity = _this$props.elasticity;
+
+        var nextOffset = applyBounds(offset, bounds);
+        var duration = Math.pow(prevDuration, elasticity);
+        _this.tweenTo(offset, nextOffset, { duration: duration, ease: ease, onComplete: _this.emitComplete });
+      };
+    };
+
+    _this.state = _extends({}, DEFAULT_STATE, {
       lastX: _this.props.defaultX,
       lastY: _this.props.defaultY
-    }), _this.emitHold = _this.props.onHold, _this.emitUpdate = _this.props.onUpdate, _this.tween = makeTween({
+    });
+    _this.replaceState = _this.replaceState.bind(_this);
+    _this.tween = makeTween({
       interpolator: function interpolator(a, b) {
         return function (i) {
           return {
@@ -1939,50 +2002,12 @@ var ReactTouchpad = function (_Component) {
         };
       },
       ease: _this.props.ease,
-      onUpdate: _this.replaceState.bind(_this)
-    }), _this.isMoving = false, _this.node = React.createRef(), _this.trackingPoints = [], _this.handleStart = function (event) {
-      if (_this.isDisabled) return;
-      var modifiedEvent = modify(event);
-      _this.unTween();
-      _this.isMoving = true;
-      _this.trackingPoints = [];
-      _this.updateState(modifiedEvent);
-      _this.promptHold();
-    }, _this.handleMove = function (event) {
-      if (!_this.isMoving) return;
-      var modifiedEvent = modify(event);
-      event.preventDefault();
-      _this.updateState(modifiedEvent);
-      _this.track(modifiedEvent.x, modifiedEvent.y);
-      _this.unHold();
-    }, _this.hendleWheel = function (event) {
-      if (_this.isDisabled) return;
-      event.preventDefault();
-      var x = event.deltaX,
-          y = event.deltaY;
-
-      _this.patchState({ x: x, y: y });
-      _this.propmptFitBounds(600);
-      _this.unHold();
-    }, _this.handleEnd = function () {
-      if (!_this.isMoving) return;
-      _this.isMoving = false;
-      _this.fixState();
-      _this.createTween();
-      _this.unHold();
-    }, _this.makeFitBounds = function (duration) {
-      return function () {
-        var _this2 = _this,
-            bounds = _this2.bounds,
-            offset = _this2.offset;
-        var _this$props = _this.props,
-            ease = _this$props.ease,
-            elasticity = _this$props.elasticity;
-
-        var nextOffset = applyBounds(offset, bounds);
-        _this.tweenTo(offset, nextOffset, { duration: Math.pow(duration, elasticity), ease: ease });
-      };
-    }, _temp), possibleConstructorReturn(_this, _ret);
+      onUpdate: _this.replaceState
+    });
+    _this.isMoving = false;
+    _this.node = React.createRef();
+    _this.trackingPoints = [];
+    return _this;
   }
 
   createClass(ReactTouchpad, [{
@@ -2003,16 +2028,14 @@ var ReactTouchpad = function (_Component) {
           y = _calcOffset2.y;
 
       if (x === xp && y === yp) return;
-      this.emitUpdate(this.childProps);
+      this.props.onUpdate(this.childProps);
     }
   }, {
     key: 'componentWillUnmount',
     value: function componentWillUnmount() {
       window.removeEventListener('mousemove', this.handleMove);
       window.addEventListener('mouseup', this.handleEnd);
-      this.unHold();
-      this.unfitBounds();
-      this.unTween();
+      this.stopAllTransitions();
     }
   }, {
     key: 'propmptFitBounds',
@@ -2027,8 +2050,14 @@ var ReactTouchpad = function (_Component) {
     }
   }, {
     key: 'promptHold',
-    value: function promptHold() {
-      this.holdTimeout = setTimeout(this.emitHold, this.props.holdDelay);
+    value: function promptHold(modifiedEvent) {
+      var _this2 = this;
+
+      var holdDelay = this.props.holdDelay;
+
+      this.holdTimeout = setTimeout(function () {
+        return _this2.emitHold(modifiedEvent);
+      }, holdDelay);
     }
   }, {
     key: 'unHold',
@@ -2046,13 +2075,13 @@ var ReactTouchpad = function (_Component) {
     }
   }, {
     key: 'patchState',
-    value: function patchState(_ref2) {
-      var x = _ref2.x,
-          y = _ref2.y;
+    value: function patchState(_ref) {
+      var x = _ref.x,
+          y = _ref.y;
 
-      this.setState(function (_ref3) {
-        var lastX = _ref3.lastX,
-            lastY = _ref3.lastY;
+      this.setState(function (_ref2) {
+        var lastX = _ref2.lastX,
+            lastY = _ref2.lastY;
         return {
           lastX: lastX - x,
           lastY: lastY - y
@@ -2061,10 +2090,11 @@ var ReactTouchpad = function (_Component) {
     }
   }, {
     key: 'replaceState',
-    value: function replaceState(_ref4) {
-      var x = _ref4.x,
-          y = _ref4.y;
+    value: function replaceState(_ref3, stopAllTransitions) {
+      var x = _ref3.x,
+          y = _ref3.y;
 
+      if (stopAllTransitions) this.stopAllTransitions();
       this.setState({
         lastX: x,
         lastY: y
@@ -2072,14 +2102,14 @@ var ReactTouchpad = function (_Component) {
     }
   }, {
     key: 'updateState',
-    value: function updateState(_ref5) {
-      var x = _ref5.x,
-          y = _ref5.y;
+    value: function updateState(_ref4) {
+      var x = _ref4.x,
+          y = _ref4.y;
 
       if (this.isDisabled) return;
-      this.setState(function (_ref6) {
-        var firstX = _ref6.firstX,
-            firstY = _ref6.firstY;
+      this.setState(function (_ref5) {
+        var firstX = _ref5.firstX,
+            firstY = _ref5.firstY;
         return {
           firstX: define(firstX, x, DEFAULT_STATE.firstX),
           firstY: define(firstY, y, DEFAULT_STATE.firstY),
@@ -2121,6 +2151,13 @@ var ReactTouchpad = function (_Component) {
       if (this.cancelTransition) this.cancelTransition();
     }
   }, {
+    key: 'stopAllTransitions',
+    value: function stopAllTransitions() {
+      this.unHold();
+      this.unfitBounds();
+      this.unTween();
+    }
+  }, {
     key: 'track',
     value: function track(x, y) {
       var ts = Date.now();
@@ -2142,7 +2179,7 @@ var ReactTouchpad = function (_Component) {
           onDragStart: prevent,
           onContextMenu: prevent,
           onMouseDown: this.handleStart,
-          onWheel: this.hendleWheel,
+          onWheel: this.handleWheel,
           onTouchStart: this.handleStart,
           onTouchMove: this.handleMove,
           onTouchEnd: this.handleEnd,
@@ -2164,11 +2201,11 @@ var ReactTouchpad = function (_Component) {
     get: function get$$1() {
       var bounds = this.props.bounds;
 
-      var _ref7 = typeof bounds === 'function' && this.node.current ? bounds(this.node.current) : bounds,
-          top = _ref7.top,
-          left = _ref7.left,
-          bottom = _ref7.bottom,
-          right = _ref7.right;
+      var _ref6 = typeof bounds === 'function' && this.node.current ? bounds(this.node.current) : bounds,
+          top = _ref6.top,
+          left = _ref6.left,
+          bottom = _ref6.bottom,
+          right = _ref6.right;
 
       var _offset2 = this.offset,
           x = _offset2.x,

@@ -5,10 +5,13 @@
   "license": "MIT",
   "private": true,
   "dependencies": {
+    "array-move": "^1.0.0",
+    "eases": "^1.0.8",
     "lodash": "^4.17.11",
     "prop-types": "^15.6.2",
     "react": "^16.4.1",
     "react-dom": "^16.4.1",
+    "react-merge-props-and-styles": "^0.0.2",
     "react-scripts": "^1.1.4",
     "react-touchpad": "link:.."
   },

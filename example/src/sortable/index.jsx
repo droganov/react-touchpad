@@ -1,40 +1,39 @@
 import React, { Component } from 'react';
-import Touchpad from 'react-touchpad';
+import range from 'lodash/range';
+import move from 'array-move';
 
-import Content from './Content';
+import Sortable from './Sortable';
+import Item from './Sortable/Item';
 import Thumb from './Thumb';
 
-export default class App extends Component {
-  state = {
-    offsetY: 0,
-  }
-  get bounds() {
 
-  }
-  handleUpdate = ({ y }) => {
-    this.setState({ offsetY: y });
-  }
-  render() {
-    return (
-      <div style={{ margin: 10 }}>
-        <Touchpad
-          onUpdate={this.handleUpdate}
-          onHold={() => console.log("hold")}
-          style={{
-            background: '#cc1',
-            border: '1px solid #cc2',
-            height: 500,
+export default class SortableExample extends Component {
+  state = {
+    items: range(0, 12),
+  };
+  handleSort = (producer, consumer) => this.setState(({ items }) => ({
+    items: move(items, producer, consumer),
+  }));
+  render = () => (
+    <div>
+      <Sortable
+        consumerProps={{
+          style: { opacity: 0.2 },
+        }}
+        ghostProps={{
+          style: {
+            boxShadow: '1px 1px 16px rgba(0, 0, 0, 0.6)',
             userSelect: 'none',
-            overflow: 'hidden',
-            position: 'relative',
-            width: 260,
-          }}
-        >
-          <Content offsetY={this.state.offsetY}>
-            <Thumb />
-          </Content>
-        </Touchpad>
-      </div>
-    );
-  }
+          },
+        }}
+        onSort={this.handleSort}
+      >
+        {this.state.items.map(item => (
+          <Item key={item} style={{ margin: 2 }}>
+            <Thumb item={item} />
+          </Item>
+        ))}
+      </Sortable>
+    </div>
+  );
 }

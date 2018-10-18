@@ -1,8 +1,6 @@
-import React, { Component } from 'react';
+import React from 'react';
 
-import Touchpad from 'react-touchpad';
-
-const Child = ({ x, y }) =>
+const Content = ({ x, y }) => (
   <div
     style={{
       minHeight: '100%',
@@ -116,34 +114,6 @@ const Child = ({ x, y }) =>
       Maecenas vitae est in ante eleifend ultrices et vel purus. Nullam a suscipit nisl. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; In finibus elit ac luctus pharetra. Aenean egestas faucibus enim, et tincidunt ex porta in. Duis quis aliquam felis. Nulla facilisi. Quisque nec hendrerit urna, in luctus enim. Integer arcu ex, ullamcorper et lacinia ut, malesuada sit amet ex. Mauris facilisis posuere tellus, non pharetra metus egestas nec.
     </p>
   </div>
+);
 
-const bounds = (node) => {
-  const { height } = node.getBoundingClientRect();
-  const { scrollHeight } = node;
-  return { top: height -scrollHeight, bottom: 0, left: 0, right: 0 };
-}
-
-export default class App extends Component {
-  render () {
-    return (
-      <div style={{
-        margin: 10,
-        position: 'relative',
-      }}>
-        <Touchpad
-          bounds={bounds}
-          onUpdate1={console.log}
-          style={{
-            background: '#cc1',
-            border: '1px solid #cc2',
-            height: 500,
-            userSelect: 'none',
-            overflow: 'hidden',
-          }}
-        >
-          <Child />
-        </Touchpad>
-      </div>
-    )
-  }
-}
+export default Content;

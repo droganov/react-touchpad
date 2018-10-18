@@ -1,8 +1,13 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 
-const Content = ({ children, offsetY, y }) => (
-  <div style={{ transform: `translateY(${offsetY}px)` }}>
+const Content = ({ children, offsetY }) => (
+  <div
+    style={{
+      position: 'relative',
+      transform: `translateY(${offsetY}px)`,
+    }}
+  >
     {children}
   </div>
 );
