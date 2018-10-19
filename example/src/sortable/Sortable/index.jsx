@@ -1,4 +1,6 @@
-import React, { Children, Component, cloneElement, createRef } from 'react';
+import React, {
+  Children, Component, cloneElement, createRef,
+} from 'react';
 import PropTypes from 'prop-types';
 
 import merge from 'react-merge-props-and-styles';
@@ -12,17 +14,19 @@ export default class Sortable extends Component {
     children: PropTypes.node.isRequired,
     consumerProps: PropTypes.shape(),
     ghostProps: PropTypes.shape(),
+    producerProps: PropTypes.shape(),
     onSort: PropTypes.func,
   }
   static defaultProps = {
     consumerProps: {},
     ghostProps: {},
+    producerProps: {},
     onSort() {},
   }
   state = {
     consumerIndex: -1,
     producerIndex: -1,
-    offsetFactor: 0,
+    offsetFactor: 0, // eslint-disable-line react/no-unused-state
     canvasOffsetY: 0,
     canvasY: 0,
     itemY: 0,
@@ -50,7 +54,9 @@ export default class Sortable extends Component {
   }
   get ghostProps() {
     if (!this.hasDragState) return {};
-    const { producerIndex, canvasY, itemY, itemX } = this.state;
+    const {
+      producerIndex, canvasY, itemY, itemX,
+    } = this.state;
     const { offsetTop, offsetWidth } = this.getChildRef(producerIndex).current;
     return merge(
       this.producer.props,
@@ -87,13 +93,15 @@ export default class Sortable extends Component {
   }
   getChildProps = (key) => {
     const ref = this.getChildRef(key);
-    if (key !== this.state.consumerIndex) return { ref };
-    const child = this.getChild(key);
-    return merge(
-      child.props,
-      this.props.consumerProps,
-      { ref },
-    );
+    const { props } = this.getChild(key);
+    let nextProps = merge(props, { ref });
+    if (key === this.state.producerIndex) {
+      nextProps = merge(nextProps, this.props.producerProps);
+    }
+    if (key === this.state.consumerIndex) {
+      nextProps = merge(nextProps, this.props.consumerProps);
+    }
+    return nextProps;
   };
   getPointIndex({ y }) {
     return this.childrenArray.findIndex((child, key) => {
@@ -131,7 +139,7 @@ export default class Sortable extends Component {
     this.setState({
       consumerIndex: -1,
       producerIndex: -1,
-      offsetFactor: 0,
+      offsetFactor: 0, // eslint-disable-line react/no-unused-state
       canvasY: currentCanvasY,
       canvasOffsetY: 0,
       itemX: 0,
@@ -170,30 +178,27 @@ export default class Sortable extends Component {
     this.props.onSort(producer, consumer);
   }
 
-  render() {
-    return (
-      <div ref={this.wrapRef} style={{ position: 'relative' }}>
-        <Touchpad
-          bounds={this.getBounds}
-          friction={this.friction}
-          holdDelay={300}
-          onUpdate={this.handleUpdate}
-          onHold={this.handleHold}
-          onStop={this.handleStop}
-          ref={this.touchpadRef}
-          style={{
-            height: 500,
-            userSelect: 'none',
-            overflow: 'hidden',
-            width: 260,
-          }}
-        >
-          <Content offsetY={this.currentCanvasY}>
-            {this.childrenArray.map(this.modifyChild)}
-          </Content>
-        </Touchpad>
-        {this.ghost}
-      </div>
-    );
-  }
+  render = () => (
+    <div ref={this.wrapRef} style={{ position: 'relative', height: '100%' }}>
+      <Touchpad
+        bounds={this.getBounds}
+        friction={this.friction}
+        holdDelay={300}
+        onUpdate={this.handleUpdate}
+        onHold={this.handleHold}
+        onStop={this.handleStop}
+        ref={this.touchpadRef}
+        style={{
+          height: '100%',
+          userSelect: 'none',
+          overflow: 'hidden',
+        }}
+      >
+        <Content offsetY={this.currentCanvasY}>
+          {this.childrenArray.map(this.modifyChild)}
+        </Content>
+      </Touchpad>
+      {this.ghost}
+    </div>
+  );
 }
