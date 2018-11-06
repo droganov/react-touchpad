@@ -107,7 +107,7 @@ export default class ReactTouchpad extends Component {
     const { x: xp, y: yp } = calcOffset(prevState);
     const { x, y } = calcOffset(this.state);
     if (x === xp && y === yp) return;
-    this.props.onUpdate(this.childProps);
+    this.props.onUpdate(this.childProps, this.replaceState);
   }
   componentWillUnmount() {
     window.removeEventListener('mousemove', this.handleMove);
@@ -141,7 +141,7 @@ export default class ReactTouchpad extends Component {
   emitComplete = () => this.props.onComplete(this.replaceState);
   emitHold = (modifiedEvent) => {
     if (!this.isMoving) return;
-    this.props.onHold(modifiedEvent);
+    this.props.onHold(modifiedEvent, this.replaceState);
   }
 
   handleStart = (event) => {
@@ -174,7 +174,7 @@ export default class ReactTouchpad extends Component {
     this.isMoving = false;
     this.fixState();
     this.createTween();
-    this.emitStop();
+    this.emitStop(this.replaceState);
   }
 
   makeFitBounds = prevDuration => () => {

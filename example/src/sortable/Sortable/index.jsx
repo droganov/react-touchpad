@@ -189,9 +189,10 @@ export default class Sortable extends Component {
         onStop={this.handleStop}
         ref={this.touchpadRef}
         style={{
-          height: '100%',
+          height: '80vh',
           userSelect: 'none',
           overflow: 'hidden',
+          touchAction: 'none',
         }}
       >
         <Content offsetY={this.currentCanvasY}>
