@@ -1,0 +1,27 @@
+.carousel {
+  overflow: hidden;
+  position: relative;
+  width: 100%;
+}
+
+.carousel__control {
+  height: 64px;
+  position: absolute;
+  width: 40px;
+  z-index: 2;
+  top: 56px;
+  opacity: 0;
+  transition: transform 400ms ease, opacity 400ms ease,
+}
+.carousel__control--first {
+  left: 8px;
+  transform: translateX(-48px);
+}
+.carousel__control--last {
+  right: 8px;
+  transform: translateX(48px);
+}
+.carousel__control--active {
+  opacity: 1;
+  transform: translateX(0px) !important;
+}

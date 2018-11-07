@@ -11,6 +11,7 @@ import makeOmitter from 'react-omit-own-props';
 
 import applyBounds from './applyBounds';
 import calcOffset from './calcOffset';
+import compareOffset from './compareOffset';
 import defaultTimingFunc from './defaultTimingFunc';
 import define from './define';
 import getDistance from './getDistance';
@@ -42,6 +43,7 @@ const PROP_TYPES = {
   defaultY: PropTypes.number,
   disabled: PropTypes.bool,
   ease: PropTypes.func,
+  elasticity: PropTypes.number,
   element: PropTypes.string,
   friction: PropTypes.number,
   holdDelay: PropTypes.number,
@@ -49,7 +51,6 @@ const PROP_TYPES = {
   onHold: PropTypes.func,
   onStop: PropTypes.func,
   onUpdate: PropTypes.func,
-  elasticity: PropTypes.number,
   windage: PropTypes.number,
 };
 
@@ -59,6 +60,7 @@ const DEFAULT_PROPS = {
   defaultY: 0,
   disabled: false,
   ease: defaultTimingFunc,
+  elasticity: 0.6,
   element: 'div',
   friction: 0.006,
   holdDelay: 604,
@@ -66,7 +68,6 @@ const DEFAULT_PROPS = {
   onHold() {},
   onStop() {},
   onUpdate() {},
-  elasticity: 0.6,
   windage: 0.064,
 };
 
@@ -82,8 +83,8 @@ export default class ReactTouchpad extends Component {
     super(props, context);
     this.state = {
       ...DEFAULT_STATE,
-      lastX: this.props.defaultX,
-      lastY: this.props.defaultY,
+      lastX: 'x' in props ? props.x : props.defaultX,
+      lastY: 'y' in props ? props.y : props.defaultY,
     };
     this.replaceState = this.replaceState.bind(this);
     this.tween = makeTween({
@@ -104,15 +105,14 @@ export default class ReactTouchpad extends Component {
     window.addEventListener('mouseup', this.handleEnd);
   }
   componentDidUpdate(prevProps, prevState) {
-    const { x: xp, y: yp } = calcOffset(prevState);
-    const { x, y } = calcOffset(this.state);
-    if (x === xp && y === yp) return;
+    const prevOffset = calcOffset(prevState);
+    const currentOffset = calcOffset(this.state);
+    if (compareOffset(prevOffset, currentOffset)) return;
     this.props.onUpdate(this.childProps, this.replaceState);
   }
   componentWillUnmount() {
     window.removeEventListener('mousemove', this.handleMove);
     window.addEventListener('mouseup', this.handleEnd);
-    this.stopAllTransitions();
   }
 
   get isDisabled() { return this.props.disabled; }
@@ -178,11 +178,11 @@ export default class ReactTouchpad extends Component {
   }
 
   makeFitBounds = prevDuration => () => {
-    const { bounds, offset } = this;
+    const { bounds } = this;
     const { ease, elasticity } = this.props;
-    const nextOffset = applyBounds(offset, bounds);
+    const nextOffset = applyBounds(this.offset, bounds);
     const duration = prevDuration ** elasticity;
-    this.tweenTo(offset, nextOffset, { duration, ease, onComplete: this.emitComplete });
+    this.tweenTo(nextOffset, { duration, ease, onComplete: this.emitComplete });
   }
   propmptFitBounds(duration) {
     this.unfitBounds();
@@ -208,10 +208,7 @@ export default class ReactTouchpad extends Component {
   }
   replaceState({ x, y }, stopAllTransitions) {
     if (stopAllTransitions) this.stopAllTransitions();
-    this.setState({
-      lastX: x,
-      lastY: y,
-    });
+    this.setState({ lastX: x, lastY: y });
   }
   updateState({ x, y }) {
     if (this.isDisabled) return;
@@ -230,19 +227,18 @@ export default class ReactTouchpad extends Component {
 
     const { friction, windage } = this.props;
 
-    const { offset } = this;
     const distance = getDistance(points);
     const time = getTime(points);
     const impulse = time * windage;
     const duration = impulse / friction;
 
-    const nextOffset = getNextOffset(offset, distance, impulse);
+    const nextOffset = getNextOffset(this.offset, distance, impulse);
 
-    this.tweenTo(offset, nextOffset, { duration, onComplete: this.makeFitBounds(duration) });
+    this.tweenTo(nextOffset, { duration, onComplete: this.makeFitBounds(duration) });
   }
-  tweenTo(offset, nextOffset, options) {
+  tweenTo(nextOffset, options) {
     this.unTween();
-    this.cancelTransition = this.tween(offset, nextOffset, options);
+    this.cancelTransition = this.tween(this.offset, nextOffset, options);
   }
   unTween() { if (this.cancelTransition) this.cancelTransition(); }
 

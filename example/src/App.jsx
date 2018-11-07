@@ -1,12 +1,12 @@
 import React, { Component } from 'react';
 
-import Scrollable from './Scrollable';
+import Carousel from './Carousel';
 import Sortable from './Sortable';
-
+import Scrollable from './Scrollable';
 
 export default class App extends Component {
   state = {
-    View: Sortable,
+    View: Carousel,
   }
   Button = ({ View, name }) => (
     <button
@@ -29,6 +29,7 @@ export default class App extends Component {
         <h3>Examples</h3>
         <hr />
         <nav>
+          <this.Button View={Carousel} name="Carousel" />
           <this.Button View={Sortable} name="Scroll + Sort" />
           <this.Button View={Scrollable} name="Scroll" />
         </nav>
