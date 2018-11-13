@@ -113,6 +113,7 @@ export default class ReactTouchpad extends Component {
   componentWillUnmount() {
     window.removeEventListener('mousemove', this.handleMove);
     window.addEventListener('mouseup', this.handleEnd);
+    this.stopAllTransitions();
   }
 
   get isDisabled() { return this.props.disabled; }
