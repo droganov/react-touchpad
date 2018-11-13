@@ -49,6 +49,7 @@ const PROP_TYPES = {
   holdDelay: PropTypes.number,
   onComplete: PropTypes.func,
   onHold: PropTypes.func,
+  onStart: PropTypes.func,
   onStop: PropTypes.func,
   onUpdate: PropTypes.func,
   windage: PropTypes.number,
@@ -66,6 +67,7 @@ const DEFAULT_PROPS = {
   holdDelay: 604,
   onComplete() {},
   onHold() {},
+  onStart() {},
   onStop() {},
   onUpdate() {},
   windage: 0.064,
@@ -154,6 +156,7 @@ export default class ReactTouchpad extends Component {
     this.trackingPoints = [];
     this.updateState(modifiedEvent);
     this.promptHold(modifiedEvent);
+    this.props.onStart(modifiedEvent);
   }
   handleMove = (event) => {
     if (!this.isMoving) return;
