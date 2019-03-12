@@ -160,6 +160,7 @@ export default class ReactTouchpad extends Component {
   }
   handleMove = (event) => {
     if (!this.isMoving) return;
+    event.preventDefault();
     const modifiedEvent = modify(event);
     this.updateState(modifiedEvent);
     this.track(modifiedEvent.x, modifiedEvent.y);
