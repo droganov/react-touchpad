@@ -52,6 +52,7 @@ const PROP_TYPES = {
   onStart: PropTypes.func,
   onStop: PropTypes.func,
   onUpdate: PropTypes.func,
+  preventMove: PropTypes.bool,
   windage: PropTypes.number,
 };
 
@@ -70,6 +71,7 @@ const DEFAULT_PROPS = {
   onStart() {},
   onStop() {},
   onUpdate() {},
+  preventMove: false,
   windage: 0.064,
 };
 
@@ -160,7 +162,7 @@ export default class ReactTouchpad extends Component {
   }
   handleMove = (event) => {
     if (!this.isMoving) return;
-    event.preventDefault();
+    if (this.props.preventMove) event.preventDefault();
     const modifiedEvent = modify(event);
     this.updateState(modifiedEvent);
     this.track(modifiedEvent.x, modifiedEvent.y);
