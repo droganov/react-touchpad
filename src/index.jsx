@@ -38,7 +38,7 @@ const PROP_TYPES = {
       bottom: PropTypes.number,
     }),
   ]),
-  children: PropTypes.node.isRequired,
+  children: PropTypes.node,
   defaultX: PropTypes.number,
   defaultY: PropTypes.number,
   disabled: PropTypes.bool,
@@ -58,6 +58,7 @@ const PROP_TYPES = {
 
 const DEFAULT_PROPS = {
   bounds: {},
+  children: null,
   defaultX: 0,
   defaultY: 0,
   disabled: false,
