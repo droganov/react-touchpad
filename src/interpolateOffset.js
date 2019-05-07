@@ -6,7 +6,7 @@ const getDistance = (n, min, max) => {
 
 const interpolate = (n, min, max, elasticity) => {
   const diff = getDistance(n, min, max);
-  const distanceFactor = diff - (diff ** elasticity);
+  const distanceFactor = diff - diff ** elasticity;
   const absN = Math.abs(n);
   return (absN - distanceFactor) * Math.sign(n);
 };

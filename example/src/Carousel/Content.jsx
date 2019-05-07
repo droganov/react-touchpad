@@ -5,6 +5,7 @@ const TouchContent = ({ children, x }) => (
   <div
     style={{
       transform: `translateX(${x}px)`,
+      willChange: 'transform',
       whiteSpace: 'nowrap',
       userSelect: 'none',
     }}

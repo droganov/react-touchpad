@@ -1,14 +1,22 @@
-{
-  "parser": "babel-eslint",
-  "extends": "airbnb",
-  "env": {
-    "browser": true,
-    "mocha": true
-  },
-  "rules": {
-    "import/prefer-default-export": 0,
-    "react/destructuring-assignment": "off",
-    "lines-between-class-members": "off",
-    "object-curly-newline": "off"
-  }
-}
+---
+  root: true
+  env:
+    browser: true
+    es6: true
+    mocha: true
+  extends:
+    - eslint:recommended
+    - airbnb
+    - prettier
+  parser: babel-eslint
+  plugins:
+    - babel
+    - import
+    - react
+    - prettier
+  rules:
+    prettier/prettier: error
+    react/destructuring-assignment: off
+    import/prefer-default-export: 0
+    lines-between-class-members: off
+    object-curly-newline: off
