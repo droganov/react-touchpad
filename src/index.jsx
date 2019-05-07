@@ -110,7 +110,7 @@ export default class ReactTouchpad extends Component {
   componentDidMount() {
     window.addEventListener('mousemove', this.handleMove);
     window.addEventListener('mouseup', this.handleEnd);
-    window.addEventListener('touchmove', this.preventMove, { passive: false });
+    window.addEventListener('touchmove', this.preventMove, { passive: false, canselable: true });
   }
   componentDidUpdate(prevProps, prevState) {
     const prevOffset = calcOffset(prevState);
