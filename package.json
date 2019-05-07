@@ -23,7 +23,7 @@
     "prepare": "yarn run build",
     "predeploy": "cd example && yarn install && yarn run build",
     "deploy": "gh-pages -d example/build",
-    "prepublish": "npm run bump"
+    "prepublish": "npm run lint && npm run bump"
   },
   "peerDependencies": {
     "prop-types": "^15.5.4",
